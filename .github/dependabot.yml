@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Go modules (gopkg.in/yaml.v3, go-toml).
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+  # GitHub Actions pinned by SHA: Dependabot bumps the SHA and its version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
