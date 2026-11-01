@@ -1,0 +1,6 @@
+servers:
+  engram:
+    command: engram
+    args: [mcp]
+  microsoft-learn:
+    url: https://learn.microsoft.com/api/mcp

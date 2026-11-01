@@ -1,0 +1,13 @@
+# {{agent}} is replaced with claude, kiro or codex.
+hooks:
+  - name: guards-write
+    description: Run agent-guards before every file write.
+    event: PreToolUse
+    matcher: write
+    command: node ~/agent-guards/bin/dispatch.js --harness {{agent}}
+    timeout: 30
+  - name: guards-prompt
+    description: Per-prompt permissions for agent-guards.
+    event: UserPromptSubmit
+    command: node ~/agent-guards/bin/dispatch.js --harness {{agent}}
+    timeout: 15

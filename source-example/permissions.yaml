@@ -1,0 +1,13 @@
+rules:
+  - capability: read
+    match: ["**/.env", "**/.env.*", "**/secrets/**", "**/*.pem"]
+    effect: deny
+  - capability: write
+    match: ["**/.env", "**/secrets/**"]
+    effect: deny
+  - capability: shell
+    match: ["git status*", "git diff*", "git log*"]
+    effect: allow
+  - capability: shell
+    match: ["git push*"]
+    effect: ask
