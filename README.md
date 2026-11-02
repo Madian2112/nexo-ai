@@ -3,7 +3,8 @@
 One source directory for skills, MCP servers, hooks, permissions, rules, the agent's soul and custom agents, compiled into the native configuration of **Claude Code**, **Kiro CLI v3**, **Codex** and **OpenCode**.
 
 ```bash
-nexo-ai import all                # bring your current agent configs into the source, once
+nexo-ai init                      # create a source with the built-in default soul
+nexo-ai import all                # optional: import existing configs (see below)
 nexo-ai install claude            # or kiro, codex, opencode, all
 nexo-ai install all --dry-run     # show what would change, write nothing
 nexo-ai measure                   # estimated always-loaded tokens per agent
@@ -26,7 +27,13 @@ Or build it with Go:
 go install github.com/Madian2112/nexo-ai/cmd/nexo-ai@latest
 ```
 
-Then put your source in `~/.nexo-ai/source`, starting from `nexo-ai import all` or from [`source-example/`](source-example), and run `nexo-ai install all --dry-run`.
+Then run `nexo-ai init` and `nexo-ai install all --dry-run`. No repository clone is needed.
+
+## Initialize
+
+`nexo-ai init [--source DIR] [--dry-run]` creates `soul/core.md` in `$NEXO_HOME/source` using a minimal default embedded in the binary. It does not install agent configurations, MCP servers, hooks or example agents. Existing source files, including an empty core, are preserved; repeated initialization is safe. Invalid source configurations and conflicting file types or symlinks at the source root, soul directory or core are rejected.
+
+If you already have an agent soul you want to keep, run `nexo-ai import all` **before** `nexo-ai init`: imports never overwrite an existing source core. Then review `nexo-ai install all --dry-run` before installing. [`source-example/`](source-example) remains an optional, richer example, not a prerequisite.
 
 ## Why
 
@@ -60,7 +67,7 @@ Hook events: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `S
 
 ## Import
 
-`nexo-ai import <agent|all> [--source DIR] [--dry-run]` reads an agent's current config and folds it into the source. The source is created if it does not exist. Run it before the first install, so the MCP servers, hooks and permissions you added by hand are not replaced.
+`nexo-ai import <agent|all> [--source DIR] [--dry-run]` reads an agent's current config and folds it into the source. The source is created if there is something to import. With no existing agent configuration, `nothing new to import` is expected and no directory is created; use `nexo-ai init` to start from the built-in soul. Run it before the first install, so the MCP servers, hooks and permissions you added by hand are not replaced.
 
 - **The source always wins.** An entry that already exists (same name, or the same hook or permission) is kept. A differing imported one is reported, never written over.
 - **What gets added:** new sections, skills, agents, MCP servers, hooks and permission patterns. Skills are copied into `skills/`, never linked to an agent directory.
