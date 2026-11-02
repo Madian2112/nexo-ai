@@ -11,8 +11,8 @@ func TestInitCleanInstallation(t *testing.T) {
 	for _, newline := range []string{"\n", "\r\n"} {
 		t.Run(map[string]string{"\n": "LF", "\r\n": "CRLF"}[newline], func(t *testing.T) {
 			home := setup(t)
-			if r := call("install", "claude"); r.code != 1 {
-				t.Fatalf("install without source: %+v", r)
+			if r := call("measure", "claude"); r.code != 1 {
+				t.Fatalf("measure without source: %+v", r)
 			}
 			if r := call("import", "claude"); r.code != 0 || !strings.Contains(r.stdout, "nothing new to import") {
 				t.Fatalf("empty import: %+v", r)

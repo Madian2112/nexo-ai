@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/Madian2112/nexo-ai/internal/model"
 	"github.com/Madian2112/nexo-ai/internal/plan"
 )
 
@@ -52,4 +54,18 @@ func InitPlan(root string) (plan.Plan, error) {
 		return p, err
 	}
 	return p, nil
+}
+
+// Default returns the source that InitPlan seeds into an empty root, as Load would
+// read it back, without touching the disk. It lets install plan a first run, dry
+// runs included, before the source exists.
+func Default(root string) (*model.Source, error) {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	src := &model.Source{Root: abs}
+	src.Settings.KiroToolSearch = true
+	src.Soul.Core = strings.ReplaceAll(string(defaultCore), "\r\n", "\n")
+	return src, nil
 }

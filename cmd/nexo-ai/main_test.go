@@ -55,7 +55,7 @@ func TestUsageAndErrors(t *testing.T) {
 		{[]string{"install"}, 2, "install needs an agent"},
 		{[]string{"install", "cursor"}, 2, `unknown agent "cursor"`},
 		{[]string{"install", "claude", "extra"}, 2, "unexpected arguments: extra"},
-		{[]string{"install", "claude"}, 1, "hint: pass --source DIR"},
+		{[]string{"measure", "claude"}, 1, "hint: pass --source DIR, or run nexo-ai init to create"},
 	}
 	for _, c := range cases {
 		r := call(c.args...)
