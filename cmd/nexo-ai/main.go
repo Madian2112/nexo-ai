@@ -28,6 +28,7 @@ var version = "0.3.0-preview.1"
 const usage = `nexo-ai: one source of skills, MCP, hooks, permissions, rules, soul and agents for every coding agent.
 
 Usage:
+  nexo-ai init [--source DIR] [--dry-run]
   nexo-ai import <agent|all> [--source DIR] [--dry-run]
   nexo-ai install <agent|all> [--source DIR] [--dry-run] [--copy-skills]
   nexo-ai measure [agent|all] [--source DIR] [--json]
@@ -36,21 +37,29 @@ Usage:
 
 Agents: %s
 
+After a successful interactive install, you can optionally install/configure Engram.
+Dry runs and noninteractive installs never prompt or install Engram.
+
 Environment:
   NEXO_HOME  nexo-ai home (default ~/.nexo-ai). The source defaults to $NEXO_HOME/source,
              install state lives in $NEXO_HOME/state and backups in $NEXO_HOME/backups.
 `
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, time.Now))
+	os.Exit(runCLI(os.Args[1:], os.Stdout, os.Stderr, time.Now, terminalInteraction()))
 }
 
 type cli struct {
 	stdout, stderr io.Writer
 	home, nexoHome string
+	interaction    installInteraction
 }
 
 func run(args []string, stdout, stderr io.Writer, now func() time.Time) int {
+	return runCLI(args, stdout, stderr, now, installInteraction{})
+}
+
+func runCLI(args []string, stdout, stderr io.Writer, now func() time.Time, interaction installInteraction) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		fmt.Fprintf(stdout, usage, strings.Join(adapters.Names(), ", "))
 		if len(args) == 0 {
@@ -63,11 +72,13 @@ func run(args []string, stdout, stderr io.Writer, now func() time.Time) int {
 		fmt.Fprintln(stderr, "error: cannot resolve home directory:", err)
 		return 1
 	}
-	c := cli{stdout: stdout, stderr: stderr, home: home, nexoHome: os.Getenv("NEXO_HOME")}
+	c := cli{stdout: stdout, stderr: stderr, home: home, nexoHome: os.Getenv("NEXO_HOME"), interaction: interaction}
 	if c.nexoHome == "" {
 		c.nexoHome = filepath.Join(home, ".nexo-ai")
 	}
 	switch args[0] {
+	case "init":
+		return c.initCmd(args[1:])
 	case "import":
 		return c.importCmd(args[1:], now)
 	case "install":
@@ -195,6 +206,9 @@ func (c cli) install(args []string, now func() time.Time) int {
 	}
 	if backedUp && !*dryRun {
 		fmt.Fprintln(c.stdout, "backups:", c.tilde(opts.BackupDir))
+	}
+	if !*dryRun {
+		c.offerEngram(names)
 	}
 	return 0
 }
