@@ -14,7 +14,13 @@ nexo-ai hook opencode --hooks F   # called by the generated OpenCode plugin, not
 
 ## Install
 
-Download the binary for your OS (Windows, Linux or macOS, amd64 or arm64) from [Releases](https://github.com/Madian2112/nexo-ai/releases). Or build it with Go:
+Download the binary for your OS (Windows, Linux or macOS, amd64 or arm64) from [Releases](https://github.com/Madian2112/nexo-ai/releases). Every file is signed with GitHub artifact attestations. Check that the file was built from this repository by its release workflow:
+
+```bash
+gh attestation verify nexo-ai_<version>_<os>_<arch>.tar.gz --repo Madian2112/nexo-ai
+```
+
+Or build it with Go:
 
 ```bash
 go install github.com/Madian2112/nexo-ai/cmd/nexo-ai@latest

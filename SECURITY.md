@@ -10,6 +10,16 @@ Do not open a public issue. Report it privately through
 [GitHub private vulnerability reporting](https://github.com/Madian2112/nexo-ai/security/advisories/new).
 Include the version (`nexo-ai version`), your OS, and the steps to reproduce.
 
+## Verifying a release
+
+Every release file and `checksums.txt` carry a signed build provenance attestation:
+
+```bash
+gh attestation verify <file> --repo Madian2112/nexo-ai
+```
+
+A file that fails this check was not built by this repository's release workflow. Do not run it.
+
 ## What nexo-ai does with your system
 
 These are by design. Report them only if nexo-ai does more than described here:
