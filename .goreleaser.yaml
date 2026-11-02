@@ -26,3 +26,5 @@ release:
   prerelease: auto
   # Published as a draft; the workflow makes it public only after the files are signed.
   draft: true
+  # A re-run after a failed signing replaces the earlier draft instead of adding another.
+  replace_existing_draft: true
