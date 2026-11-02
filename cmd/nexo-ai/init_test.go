@@ -8,33 +8,44 @@ import (
 )
 
 func TestInitCleanInstallation(t *testing.T) {
-	home := setup(t)
-	if r := call("install", "claude"); r.code != 1 {
-		t.Fatalf("install without source: %+v", r)
-	}
-	if r := call("import", "claude"); r.code != 0 || !strings.Contains(r.stdout, "nothing new to import") {
-		t.Fatalf("empty import: %+v", r)
-	}
-	root := filepath.Join(home, ".nexo-ai", "source")
-	if _, err := os.Stat(root); !os.IsNotExist(err) {
-		t.Fatalf("empty import created source: %v", err)
-	}
-	if r := call("init"); r.code != 0 {
-		t.Fatalf("init: %+v", r)
-	}
-	core, err := os.ReadFile(filepath.Join(root, "soul", "core.md"))
-	if err != nil || len(core) == 0 {
-		t.Fatalf("default core: %q, %v", core, err)
-	}
-	if _, err := os.Stat(filepath.Join(home, ".claude")); !os.IsNotExist(err) {
-		t.Fatalf("init installed agent: %v", err)
-	}
-	if r := call("install", "claude"); r.code != 0 {
-		t.Fatalf("install after init: %+v", r)
-	}
-	installed, err := os.ReadFile(filepath.Join(home, ".claude", "CLAUDE.md"))
-	if err != nil || !strings.Contains(string(installed), string(core)) {
-		t.Fatalf("installed core: %q, %v", installed, err)
+	for _, newline := range []string{"\n", "\r\n"} {
+		t.Run(map[string]string{"\n": "LF", "\r\n": "CRLF"}[newline], func(t *testing.T) {
+			home := setup(t)
+			if r := call("install", "claude"); r.code != 1 {
+				t.Fatalf("install without source: %+v", r)
+			}
+			if r := call("import", "claude"); r.code != 0 || !strings.Contains(r.stdout, "nothing new to import") {
+				t.Fatalf("empty import: %+v", r)
+			}
+			root := filepath.Join(home, ".nexo-ai", "source")
+			if _, err := os.Stat(root); !os.IsNotExist(err) {
+				t.Fatalf("empty import created source: %v", err)
+			}
+			if r := call("init"); r.code != 0 {
+				t.Fatalf("init: %+v", r)
+			}
+			core, err := os.ReadFile(filepath.Join(root, "soul", "core.md"))
+			if err != nil || len(core) == 0 {
+				t.Fatalf("default core: %q, %v", core, err)
+			}
+			// Simulate source checkout line endings on every operating system.
+			core = []byte(strings.ReplaceAll(strings.ReplaceAll(string(core), "\r\n", "\n"), "\n", newline))
+			if err := os.WriteFile(filepath.Join(root, "soul", "core.md"), core, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(filepath.Join(home, ".claude")); !os.IsNotExist(err) {
+				t.Fatalf("init installed agent: %v", err)
+			}
+			if r := call("install", "claude"); r.code != 0 {
+				t.Fatalf("install after init: %+v", r)
+			}
+			installed, err := os.ReadFile(filepath.Join(home, ".claude", "CLAUDE.md"))
+			// The source loader canonicalizes CRLF to LF before compilation.
+			expected := strings.ReplaceAll(string(core), "\r\n", "\n")
+			if err != nil || !strings.Contains(string(installed), expected) {
+				t.Fatalf("installed core: %q, %v", installed, err)
+			}
+		})
 	}
 }
 
