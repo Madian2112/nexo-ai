@@ -188,3 +188,15 @@ On Windows without Developer Mode, symlinks fail and skills are copied instead. 
 ## License
 
 [MIT](LICENSE)
+
+## Optional Engram memory
+
+After a successful `nexo-ai install <agent|all>` in an interactive terminal, nexo-ai offers to install and configure [Engram™](https://github.com/Gentleman-Programming/engram). Engram is an independent persistent-memory project created by **Alan Buscaglia (Gentleman Programming)**; it helps coding agents retain knowledge between sessions and stores memory locally by default. This integration does not imply endorsement or affiliation.
+
+- The default answer is **no**. Only `y` or `yes` followed by Enter consents. Empty input, EOF and other answers skip it.
+- `--dry-run`, redirected input/output and noninteractive installations never prompt or install Engram. `init` and `import` never offer it either.
+- An existing Engram binary in `$NEXO_HOME/bin` or on `PATH` is reused without upgrading it. Otherwise, **Go must be on PATH**: nexo-ai runs the [documented Go installation](https://github.com/Gentleman-Programming/engram/blob/main/docs/INSTALLATION.md), `go install github.com/Gentleman-Programming/engram/v3/cmd/engram@latest`, with `GOBIN` set to `$NEXO_HOME/bin`. This requires network access; it does not clone the repository or change your persistent PATH.
+- After consent, nexo-ai runs `engram setup` for the selected agents (`claude` maps to `claude-code`). For `all`, it installs the binary once and sets up each agent. Setup can modify agent MCP/plugin configurations and may have its own prerequisites or prompts. It does not request cloud enrollment. See [Engram agent setup](https://github.com/Gentleman-Programming/engram/blob/main/docs/AGENT-SETUP.md).
+- If optional installation or setup fails, nexo-ai reports a warning and manual recovery instructions. The already completed agent installation remains successful; prior successful setup steps are not rolled back. Restart your agents after successful setup.
+
+The built-in soul is **Nexo AI — Core Soul**, covering identity, communication, engineering, safety and collaboration. Updating the binary does not overwrite an existing `soul/core.md`; customize that file yourself if your source was already initialized.

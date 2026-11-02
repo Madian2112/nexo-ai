@@ -207,6 +207,9 @@ func (c cli) install(args []string, now func() time.Time) int {
 	if backedUp && !*dryRun {
 		fmt.Fprintln(c.stdout, "backups:", c.tilde(opts.BackupDir))
 	}
+	if !*dryRun {
+		c.offerEngram(names)
+	}
 	return 0
 }
 
