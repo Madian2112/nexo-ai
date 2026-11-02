@@ -61,3 +61,8 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
             dist/checksums.txt
+      # Only signed files go public: if signing fails, the release stays a draft.
+      - name: Publish the signed release
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

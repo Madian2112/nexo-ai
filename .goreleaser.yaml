@@ -24,3 +24,5 @@ checksum:
 
 release:
   prerelease: auto
+  # Published as a draft; the workflow makes it public only after the files are signed.
+  draft: true
