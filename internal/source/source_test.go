@@ -3,6 +3,7 @@ package source
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -145,5 +146,32 @@ func TestFrontmatterCRLF(t *testing.T) {
 	meta, body, err := SplitFrontmatter([]byte("---\r\nname: x\r\n---\r\nhello\r\n"))
 	if err != nil || !strings.Contains(meta, "name: x") || strings.TrimSpace(body) != "hello" {
 		t.Fatalf("meta=%q body=%q err=%v", meta, body, err)
+	}
+}
+
+func TestDefaultMatchesInitializedSource(t *testing.T) {
+	root := t.TempDir()
+	p, err := InitPlan(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, op := range p.Ops {
+		if err := os.MkdirAll(filepath.Dir(op.Path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(op.Path, op.Content, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	def, err := Default(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(def, loaded) {
+		t.Fatalf("Default differs from the initialized source:\n%+v\n%+v", def, loaded)
 	}
 }

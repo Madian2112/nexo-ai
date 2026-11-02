@@ -131,9 +131,36 @@ func (c cli) load(dir string) (*model.Source, error) {
 	}
 	src, err := source.Load(dir)
 	if err != nil {
-		return nil, fmt.Errorf("%w\nhint: pass --source DIR, or copy source-example to %s", err, filepath.Join(c.nexoHome, "source"))
+		return nil, fmt.Errorf("%w\nhint: pass --source DIR, or run nexo-ai init to create %s", err, filepath.Join(c.nexoHome, "source"))
 	}
 	return src, nil
+}
+
+// installSource loads the source for install. Only the default source is seeded
+// automatically, and only when nothing exists at its path: an explicit --source is
+// the user's choice, and an existing but broken source is an error, never a reset.
+// The returned init plan is nil when nothing needs seeding; agents are planned from
+// the in-memory default, so a dry run writes nothing.
+func (c cli) installSource(dir string) (*model.Source, *plan.Plan, error) {
+	if dir != "" {
+		src, err := c.load(dir)
+		return src, nil, err
+	}
+	root := filepath.Join(c.nexoHome, "source")
+	if _, err := os.Lstat(root); !os.IsNotExist(err) {
+		src, err := c.load("")
+		return src, nil, err
+	}
+	p, err := source.InitPlan(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	p.Agent = "init " + c.tilde(root)
+	src, err := source.Default(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	return src, &p, nil
 }
 
 func (c cli) install(args []string, now func() time.Time) int {
@@ -156,7 +183,7 @@ func (c cli) install(args []string, now func() time.Time) int {
 		fmt.Fprintln(c.stderr, "error:", err)
 		return 2
 	}
-	src, err := c.load(*sourceDir)
+	src, initPlan, err := c.installSource(*sourceDir)
 	if err != nil {
 		fmt.Fprintln(c.stderr, "error:", err)
 		return 1
@@ -164,7 +191,11 @@ func (c cli) install(args []string, now func() time.Time) int {
 
 	// Plan every agent first, so an unreadable config aborts before anything is written.
 	stateDir := filepath.Join(c.nexoHome, "state")
-	plans := make([]plan.Plan, 0, len(names))
+	plans := make([]plan.Plan, 0, len(names)+1)
+	if initPlan != nil {
+		// Seeding the source is applied first, without install state, like `nexo-ai init`.
+		plans = append(plans, *initPlan)
+	}
 	for _, n := range names {
 		env := plan.OSEnv(c.home)
 		env.Executable = executable()
@@ -193,8 +224,12 @@ func (c cli) install(args []string, now func() time.Time) int {
 		CopyLinks: *copySkills,
 	}
 	backedUp := false
-	for _, p := range plans {
-		r, err := install.Apply(p, opts)
+	for i, p := range plans {
+		popts := opts
+		if initPlan != nil && i == 0 {
+			popts = install.Options{Home: c.home, DryRun: *dryRun}
+		}
+		r, err := install.Apply(p, popts)
 		c.printReport(r, *dryRun)
 		if err != nil {
 			fmt.Fprintf(c.stderr, "error: %s: %v\n", p.Agent, err)
