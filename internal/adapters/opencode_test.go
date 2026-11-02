@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -58,7 +59,7 @@ func TestOpenCode(t *testing.T) {
 		t.Errorf("hooks file:\n%s", hooks)
 	}
 	plugin := string(op(t, p, ".config/opencode/plugins/nexo-hooks.js", home).Content)
-	if strings.Contains(plugin, "__NEXO") || !strings.Contains(plugin, `const NEXO = "nexo-ai"`) || !strings.Contains(plugin, filepath.ToSlash(home)) {
+	if strings.Contains(plugin, "__NEXO") || !strings.Contains(plugin, `const NEXO = "nexo-ai"`) || !strings.Contains(plugin, jsonString(filepath.Join(home, ".config", "opencode", "nexo", "hooks.json"))) {
 		t.Errorf("plugin shim:\n%s", plugin)
 	}
 	if !hasWarning(p, "calls nexo-ai from PATH") {
@@ -91,6 +92,9 @@ func toStrings(v any) []string {
 func buildNexo(t *testing.T) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "nexo-ai")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
 	out, err := exec.Command("go", "build", "-o", bin, "github.com/Madian2112/nexo-ai/cmd/nexo-ai").CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
@@ -224,7 +228,13 @@ func TestOpenCodeHonorsXDGConfigHome(t *testing.T) {
 			t.Errorf("%s is outside $XDG_CONFIG_HOME/opencode", o.Path)
 		}
 	}
-	if !strings.Contains(string(op(t, p, "xdg/opencode/plugins/nexo-hooks.js", home).Content), filepath.ToSlash(filepath.Join(xdg, "opencode", "nexo", "hooks.json"))) {
+	if !strings.Contains(string(op(t, p, "xdg/opencode/plugins/nexo-hooks.js", home).Content), jsonString(filepath.Join(xdg, "opencode", "nexo", "hooks.json"))) {
 		t.Error("the shim must point at the hooks file under $XDG_CONFIG_HOME")
 	}
+}
+
+// jsonString is how the shim embeds a path: JSON-escaped, so Windows backslashes are doubled.
+func jsonString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }

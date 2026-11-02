@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -18,8 +19,7 @@ type result struct {
 func setup(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
+	setHome(t, home)
 	t.Setenv("NEXO_HOME", filepath.Join(home, ".nexo-ai"))
 	t.Setenv("XDG_CONFIG_HOME", "")
 	return home
@@ -257,7 +257,7 @@ func TestImportThenInstallRoundTrip(t *testing.T) {
 	if info, err := os.Lstat(filepath.Join(src, "skills", "tdd")); err != nil || info.Mode()&os.ModeSymlink != 0 {
 		t.Error("skills are copied into the source, never linked to an agent dir")
 	}
-	if info, _ := os.Stat(filepath.Join(src, "mcp.yaml")); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(filepath.Join(src, "mcp.yaml")); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("mcp.yaml mode = %v, want 0600", info.Mode().Perm())
 	}
 
@@ -272,7 +272,7 @@ func TestImportThenInstallRoundTrip(t *testing.T) {
 	}
 
 	// The imported source installs back cleanly into a new home.
-	t.Setenv("HOME", t.TempDir())
+	setHome(t, t.TempDir())
 	if r := call("install", "all", "--source", src); r.code != 0 {
 		t.Fatalf("install from imported source: %d\n%s%s", r.code, r.stdout, r.stderr)
 	}
@@ -355,7 +355,7 @@ func TestSameHooksFromClaudeAndKiroAreSharedByEveryAgent(t *testing.T) {
 	}
 
 	fresh := t.TempDir()
-	t.Setenv("HOME", fresh)
+	setHome(t, fresh)
 	if r := call("install", "all", "--source", src); r.code != 0 {
 		t.Fatalf("%d\n%s%s", r.code, r.stdout, r.stderr)
 	}
@@ -378,7 +378,13 @@ func TestHookCommand(t *testing.T) {
 	setup(t)
 	dir := t.TempDir()
 	hooksFile := filepath.Join(dir, "hooks.json")
-	if err := os.WriteFile(hooksFile, []byte(`[{"name":"g","event":"PreToolUse","matcher":"write","command":"echo no >&2; exit 2"}]`), 0o644); err != nil {
+	// The hook runs through the system shell: sh on Unix, cmd.exe on Windows.
+	command := "echo no >&2; exit 2"
+	if runtime.GOOS == "windows" {
+		command = "echo no 1>&2 & exit 2"
+	}
+	hooks, _ := json.Marshal([]map[string]string{{"name": "g", "event": "PreToolUse", "matcher": "write", "command": command}})
+	if err := os.WriteFile(hooksFile, hooks, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	callIn := func(stdin string, args ...string) result {
@@ -398,4 +404,12 @@ func TestHookCommand(t *testing.T) {
 	if r := callIn(`{}`, "claude", "--hooks", hooksFile); r.code != 2 {
 		t.Errorf("only opencode: %+v", r)
 	}
+}
+
+// setHome points every home lookup at dir: os.UserHomeDir reads HOME on Unix and
+// USERPROFILE on Windows.
+func setHome(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 }
