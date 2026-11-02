@@ -135,7 +135,7 @@ func TestUnsafeSkillsAreRefused(t *testing.T) {
 		skill model.Skill
 		want  string
 	}{
-		"home itself":    {skillAt(t, home, nil), "contains " + home},
+		"home itself":    {skillAt(t, home, nil), "contains " + realPath(t, home)},
 		"symlink inside": {mk("linked", func(d string) { _ = os.Symlink("/etc", filepath.Join(d, "etc")) }), "contains the symlink"},
 		"git checkout":   {mk("repo", write(".git/HEAD")), "repository checkout"},
 		"env file":       {mk("secret", write(".env.local")), "secrets file"},
@@ -241,4 +241,15 @@ func TestHomeTemplateKeepsEscapes(t *testing.T) {
 	if got := HomeTemplate(in, `D:\work\me`); got != want {
 		t.Errorf("HomeTemplate = %q, want %q", got, want)
 	}
+}
+
+// realPath resolves symlinks and Windows short names (/var → /private/var on macOS,
+// RUNNER~1 → runneradmin on Windows), as the importer does before comparing paths.
+func realPath(t *testing.T, p string) string {
+	t.Helper()
+	r, err := filepath.EvalSymlinks(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
 }

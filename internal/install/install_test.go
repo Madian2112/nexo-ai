@@ -3,6 +3,7 @@ package install
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/Madian2112/nexo-ai/internal/plan"
@@ -215,6 +216,7 @@ func TestCopyLinks(t *testing.T) {
 }
 
 func TestFileModeIsPreserved(t *testing.T) {
+	skipWithoutPOSIXModes(t)
 	f := newFixture(t)
 	path := f.path(".claude.json")
 	if err := os.WriteFile(path, []byte(`{"oauthAccount": "secret"}`), 0o600); err != nil {
@@ -305,6 +307,7 @@ func TestDuplicatePathsAreRejected(t *testing.T) {
 }
 
 func TestNewSharedFileIsPrivate(t *testing.T) {
+	skipWithoutPOSIXModes(t)
 	f := newFixture(t)
 	p := plan.Plan{Agent: "claude"}
 	p.Merged(f.path(".claude.json"), []byte("{}\n"), []string{"mcpServers"})
@@ -334,5 +337,13 @@ func TestStatelessApplyKeepsNoState(t *testing.T) {
 	}
 	if _, err := os.Stat(f.path(".nexo-ai")); !os.IsNotExist(err) {
 		t.Error("no state dir may be created")
+	}
+}
+
+// Windows has no POSIX file modes: Go reports 0666 and access is governed by ACLs.
+func skipWithoutPOSIXModes(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX file modes do not apply on Windows")
 	}
 }

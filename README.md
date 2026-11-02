@@ -174,6 +174,7 @@ On Windows without Developer Mode, symlinks fail and skills are copied instead. 
   - OpenCode's `chat.message` plugin hook (documented by third parties only).
 - **Not passed to OpenCode:** hook output meant as extra context.
 - **No per-path permissions in Codex.** Codex gets no per-path permission rules and no `read` matcher. Reads go through its shell hook.
+- **File modes on Windows.** The `0600` for shared config files applies on Linux and macOS. On Windows, access is governed by the folder's ACLs, which by default already limit your user profile to you.
 - **One command line for every OS.** A hook or MCP command written for one OS, such as a Windows `.exe` path, runs as written everywhere. There are no per-OS variants yet.
 - **Not on the roadmap yet:** intent routing (`inclusion: intent`) and the per-prompt router.
 
